@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Broker:"
+            android:textSize="30dp" />
+
+        <EditText
+            android:id="@+id/editText_broker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="number"
+            android:layout_centerVertical="true"
+            android:text="127.0.0.1"
+            android:layout_toEndOf="@+id/textView" />
+
+        <Button
+            android:id="@+id/helpBroker"
+            android:layout_width="45dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="\?" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1">
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Port:"
+            android:textSize="30dp" />
+
+        <EditText
+            android:id="@+id/editText_port"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:text="1883"
+            android:inputType="number"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/textView1" />
+
+        <Button
+            android:id="@+id/helpPort"
+            android:layout_width="45dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="\?" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1">
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Client ID:"
+            android:textSize="30dp" />
+
+        <EditText
+            android:id="@+id/editText_client"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:text="phone"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/textView2" />
+
+        <Button
+            android:id="@+id/helpClient"
+            android:layout_width="45dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="\?" />
+    </RelativeLayout>
+</LinearLayout>
