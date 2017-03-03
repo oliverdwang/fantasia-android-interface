@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.oliverwang.fantasia.MainActivity">
+
+    <LinearLayout
+        android:layout_width="368dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        tools:layout_editor_absoluteY="0dp"
+        tools:layout_editor_absoluteX="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!--navigation buttons-->
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!--broker related buttons-->
+            <Button
+                android:id="@+id/configure_broker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Configure Broker" />
+
+            <Button
+                android:id="@+id/run_broker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Run Broker" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!--client related buttons-->
+            <Button
+                android:id="@+id/configure_client"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Configure Client" />
+
+            <Button
+                android:id="@+id/run_client"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Run Client" />
+
+        </LinearLayout>
+
+        <!--verbose log-->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Verbose Log:"
+            android:textSize="24dp"/>
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ListView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/verbose_log">
+            </ListView>
+        </RelativeLayout>
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>
