@@ -3,6 +3,7 @@ package com.oliverwang.fantasia;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
@@ -15,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,7 +26,42 @@ import org.eclipse.moquette.server.Server;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.eclipse.moquette.proto.messages.AbstractMessage;
+import org.eclipse.moquette.proto.messages.SubscribeMessage;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.eclipse.moquette.server.*;
+import org.eclipse.moquette.spi.impl.*;
+import org.eclipse.moquette.spi.impl.subscriptions.*;
+
+import java.io.IOException;
+
 public class MainActivity extends AppCompatActivity {
+
+    public String topicToPublish;
+    public String topicToSubscribe;
+    public String content;
+    public String MQTTmessage;
+    public String broker;
+    public String port;
+    public String clientId;
+    public String messages[] = {"", "", "", "", ""};
+    public String brokerURI;
+    public MqttClient client;
+    public MqttConnectOptions options;
+
+    public int qos = 0;
+
+    public String brokerString = "127.0.0.1";
+    public String portString = "1883";
+    public String clientString = "phone";
+    public String protocol;
+    public String filePath;
 
     private ListView verboseLog;
     private Button configureBroker;
@@ -50,12 +87,126 @@ public class MainActivity extends AppCompatActivity {
 
         //set onClickListener for buttons
         configureBroker.setOnClickListener(buttonOnClickListener);
+        runBroker.setOnClickListener(buttonOnClickListener);
+        configureClient.setOnClickListener(buttonOnClickListener);
+        runClient.setOnClickListener(buttonOnClickListener);
 
         //setup arraylist
         log = new ArrayList<String>();
         ArrayAdapter<String> logAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, log);
         verboseLog.setAdapter(logAdapter);
     }
+
+    private View.OnClickListener buttonOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(final View v) {
+
+            switch (v.getId()) {
+
+                case R.id.configure_broker:
+                    LayoutInflater configureBrokerInflater = getLayoutInflater();
+                    View alertDialogConfigureBrokerLayout = configureBrokerInflater.inflate(R.layout.alertdialog_configurebroker, null);
+                    AlertDialog.Builder configureBrokerBuilder = new AlertDialog.Builder(MainActivity.this);
+                    configureBrokerBuilder.setView(alertDialogConfigureBrokerLayout);
+                    configureBrokerBuilder.setTitle("Configure Broker");
+                    configureBrokerBuilder.setPositiveButton("Save",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //@todo set broker settings
+                                    dialog.dismiss();
+                                }
+                            });
+                    configureBrokerBuilder.setNegativeButton("Exit",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    final AlertDialog configureBrokerAlert = configureBrokerBuilder.create();
+                    configureBrokerAlert.show();
+                    break;
+
+                case R.id.run_broker:
+                    if (isPermissionGranted()) {
+                        //run broker
+                        try {
+                            new Server().startServer();
+                            Toast.makeText(getApplicationContext(), "Broker started", Toast.LENGTH_SHORT).show();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Log.v("launch broker", "io exception");
+                        }
+                    }
+                    break;
+
+                case R.id.configure_client:
+                    LayoutInflater configureClientInflater = getLayoutInflater();
+                    View alertDialogConfigureClientLayout = configureClientInflater.inflate(R.layout.alertdialog_configureclient, null);
+                    final EditText setBroker = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_broker);
+                    final EditText setPort = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_port);
+                    final EditText setClientID = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_clientid);
+                    Button helpBroker = (Button) alertDialogConfigureClientLayout.findViewById(R.id.button_helpBroker);
+                    helpBroker.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            setBroker.setError("Enter the IP Address of the broker\nDefault IP for internal MQTT Broker is 127.0.0.1\nFormat for IP is ###.###.###.###");
+                        }
+                    });
+                    Button helpPort = (Button) alertDialogConfigureClientLayout.findViewById(R.id.button_helpPort);
+                    helpPort.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            setPort.setError("Enter the port that the broker listens to\nFor standard brokers, the port is 1883\nFor SSL brokers, the port is 8883");
+                        }
+                    });
+                    Button helpClientid = (Button) alertDialogConfigureClientLayout.findViewById(R.id.button_helpClientid);
+                    helpClientid.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            setClientID.setError("Enter the client ID for this device\nAny standard descriptive text string works");
+                        }
+                    });
+                    AlertDialog.Builder configureClientBuilder = new AlertDialog.Builder(MainActivity.this);
+                    configureClientBuilder.setView(alertDialogConfigureClientLayout);
+                    configureClientBuilder.setTitle("Configure Client");
+                    configureClientBuilder.setPositiveButton("Save",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    brokerString = setBroker.getText().toString();
+                                    portString = setPort.getText().toString();
+                                    clientString = setClientID.getText().toString();
+                                }
+                            });
+                    configureClientBuilder.setNegativeButton("Exit",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    AlertDialog configureClientAlert = configureClientBuilder.create();
+                    configureClientAlert.show();
+                    break;
+
+                case R.id.run_client:
+                    // This String is built depending on the type of connection and data from the
+                    // UI
+                    String URIbroker;
+
+                    URIbroker = "tcp://" + brokerString + ":" + portString;
+                    protocol = "tcp";
+
+                    // Bundle the parameters, and call the parent Activity method to start the connection
+                    String connectParams[] = {"connect", brokerString, portString,
+                            URIbroker, clientString, protocol, filePath};
+                    createMQTTClient(connectParams);
+                    break;
+            }
+        }
+    };
 
     public boolean isPermissionGranted() {
         boolean writeExternalStorage = false;
@@ -126,59 +277,104 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //@todo add custom alert dialogs for configureBroker, runBroker, configureClient, and runClient
-    private View.OnClickListener buttonOnClickListener = new View.OnClickListener() {
+    public void createMQTTClient(String connectParams[]) {
+
+        // This method is called from  MQTTConnectFragment and it passes an array of
+        // strings with the information gathered from the GUI to create an MQQT client
+        MQTTClientClass mqttClient = new MQTTClientClass();
+        mqttClient.execute(connectParams);
+    }
+
+    /*
+    The AsyncTask is called with <Params, Progress, Result>
+    This class contains all the Paho MQTT functionality
+    */
+    public class MQTTClientClass extends AsyncTask<String, Void, String[]> {
+
         @Override
-        public void onClick(final View v) {
+        protected String[] doInBackground(String... paramString) {
 
-            switch (v.getId()) {
+            // The same Async function will be called from different fragments, keeping the unity
+            // of the implementation. For this, the first string of the passed parameters is checked
+            // for matches with the cases to process
+            switch (paramString[0]) {
 
-                case R.id.configure_broker:
-                    LayoutInflater inflater = getLayoutInflater();
-                    View alertDialogConfigureBrokerLayout = inflater.inflate(R.layout.alertdialog_configurebroker, null);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                    builder.setView(alertDialogConfigureBrokerLayout);
-                    builder.setTitle("Configure Broker");
-                    builder.setPositiveButton("Save",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    //@todo set broker settings
-                                    dialog.dismiss();
-                                }
-                            });
-                    builder.setNegativeButton("Exit",
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    AlertDialog alert = builder.create();
-                    alert.show();
-                    break;
+                // If called from MQTTConnectFragment
+                case "connect":
 
-                case R.id.run_broker:
-                    if (isPermissionGranted()) {
-                        //run broker
-                        try {
-                            new Server().startServer();
-                            Toast.makeText(getApplicationContext(), "Broker started", Toast.LENGTH_SHORT).show();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            Log.v("launch broker", "io exception");
-                        }
+                    // Retrieve the information from the arguments into the local variables
+                    broker = paramString[1];
+                    port = paramString[2];
+                    brokerURI = paramString[3];
+                    clientId = paramString[4];
+
+                    // Add memory persistence to the client
+                    MemoryPersistence persistence = new MemoryPersistence();
+
+                    try {
+                        // Create client with the given URI, ID and persistence, add options and session type
+                        client = new MqttClient(brokerURI, clientId, persistence);
+                        options = new MqttConnectOptions();
+                        options.setCleanSession(true);
+                        options.setConnectionTimeout(60);
+                        options.setKeepAliveInterval(60);
+
+                        // TODO: Rid these debugging prints
+                        // Connect to the server
+                        System.out.println("Connecting to broker: " + broker);
+                        client.connect(options);
+                        System.out.println("Connected");
+
+                        return paramString;
+
+                    } catch (MqttException me) {
+                        // TODO: Rid these debugging prints
+                        System.out.println("reason " + me.getReasonCode());
+                        System.out.println("msg " + me.getMessage());
+                        System.out.println("loc " + me.getLocalizedMessage());
+                        System.out.println("cause " + me.getCause());
+                        System.out.println("excep " + me);
+                        me.printStackTrace();
+                    } catch (Exception e) {
+                        Log.d("Things Flow I/O", "Error " + e);
+                        e.printStackTrace();
                     }
                     break;
 
-                case R.id.configure_client:
+                // If called from MQTTPublishFragment
+                case "publish":
 
-                    break;
+                    // Retrieve the information from the arguments into the local variables
+                    content = paramString[1];
+                    topicToPublish = paramString[2];
+                    qos = Integer.parseInt(paramString[3]);
 
-                case R.id.run_client:
+                    // Create the message to send and set the Quality of Service
+                    // TODO: Rid these debugging prints
+                    System.out.println("Publishing message: " + content);
+                    MqttMessage message = new MqttMessage(content.getBytes());
+                    message.setQos(qos);
 
+                    try {
+                        // Publish the msessage
+                        client.publish(topicToPublish, message);
+                        System.out.println("Message published");
+                        // TODO: Rid these debugging prints
+                    } catch (MqttException e) {
+                        e.printStackTrace();
+                        return null;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                    return paramString;
+
+                // If called from MQTTSubscribeFragment
+                case "subscribe":
+                    //TODO: Subscription extra actions, nothing so far
                     break;
             }
+            return null;
         }
-    };
+    }
 }
