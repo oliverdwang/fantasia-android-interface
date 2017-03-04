@@ -44,13 +44,10 @@ import java.io.IOException;
 public class MainActivity extends AppCompatActivity {
 
     public String topicToPublish;
-    public String topicToSubscribe;
     public String content;
-    public String MQTTmessage;
     public String broker;
     public String port;
     public String clientId;
-    public String messages[] = {"", "", "", "", ""};
     public String brokerURI;
     public MqttClient client;
     public MqttConnectOptions options;
