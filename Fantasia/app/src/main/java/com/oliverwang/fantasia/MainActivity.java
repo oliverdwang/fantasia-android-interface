@@ -1,11 +1,14 @@
 package com.oliverwang.fantasia;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -24,6 +27,8 @@ import android.widget.Toast;
 import org.eclipse.moquette.server.Server;
 
 import java.io.IOException;
+import java.sql.Time;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import org.eclipse.moquette.proto.messages.AbstractMessage;
@@ -40,19 +45,9 @@ import org.eclipse.moquette.spi.impl.*;
 import org.eclipse.moquette.spi.impl.subscriptions.*;
 
 import java.io.IOException;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-
-    public String topicToPublish;
-    public String content;
-    public String broker;
-    public String port;
-    public String clientId;
-    public String brokerURI;
-    public MqttClient client;
-    public MqttConnectOptions options;
-
-    public int qos = 0;
 
     public String brokerString = "127.0.0.1";
     public String portString = "1883";
@@ -60,14 +55,11 @@ public class MainActivity extends AppCompatActivity {
     public String protocol;
     public String filePath;
 
-    private ListView verboseLog;
     private Button configureBroker;
     private Button runBroker;
     private Button configureClient;
     private Button runClient;
-    private Toolbar toolbar;
-
-    public ArrayList<String> log;
+    private Button startGeo;
 
     //@todo add function to refresh listview on update of log arraylist
     @Override
@@ -76,22 +68,20 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //setup all objects
-        verboseLog = (ListView) findViewById(R.id.verbose_log);
         configureBroker = (Button) findViewById(R.id.configure_broker);
         runBroker = (Button) findViewById(R.id.run_broker);
         configureClient = (Button) findViewById(R.id.configure_client);
         runClient = (Button) findViewById(R.id.run_client);
+        startGeo = (Button) findViewById(R.id.button_startGeo);
 
         //set onClickListener for buttons
         configureBroker.setOnClickListener(buttonOnClickListener);
         runBroker.setOnClickListener(buttonOnClickListener);
         configureClient.setOnClickListener(buttonOnClickListener);
         runClient.setOnClickListener(buttonOnClickListener);
+        startGeo.setOnClickListener(buttonOnClickListener);
 
-        //setup arraylist
-        log = new ArrayList<String>();
-        ArrayAdapter<String> logAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, log);
-        verboseLog.setAdapter(logAdapter);
+        isPermissionGranted();
     }
 
     private View.OnClickListener buttonOnClickListener = new View.OnClickListener() {
@@ -101,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
             switch (v.getId()) {
 
                 case R.id.configure_broker:
+                    Log.v("test","something");
                     LayoutInflater configureBrokerInflater = getLayoutInflater();
                     View alertDialogConfigureBrokerLayout = configureBrokerInflater.inflate(R.layout.alertdialog_configurebroker, null);
                     AlertDialog.Builder configureBrokerBuilder = new AlertDialog.Builder(MainActivity.this);
@@ -110,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     //@todo set broker settings
+
                                     dialog.dismiss();
                                 }
                             });
@@ -189,8 +181,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case R.id.run_client:
-                    // This String is built depending on the type of connection and data from the
-                    // UI
+                    // This String is built depending on the type of connection and data from the UI
                     String URIbroker;
 
                     URIbroker = "tcp://" + brokerString + ":" + portString;
@@ -201,74 +192,74 @@ public class MainActivity extends AppCompatActivity {
                             URIbroker, clientString, protocol, filePath};
                     createMQTTClient(connectParams);
                     break;
+
+                case R.id.button_startGeo:
+                    startActivity(new Intent(MainActivity.this, MapsActivity.class));
+                    break;
             }
         }
     };
 
     public boolean isPermissionGranted() {
-        boolean writeExternalStorage = false;
-        boolean accessFineLocation = false;
+        ArrayList<String> permissions = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 23) {
-            Log.v("permissions", "need runtime dialog");
-            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                Log.v("external storage", "permission is granted");
-                writeExternalStorage = true;
-            } else {
-                Log.v("external storage", "Permission is revoked");
-                writeExternalStorage = false;
-                // ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-            }
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                Log.v("fine location", "permission is granted");
-                accessFineLocation = true;
-            } else {
-                Log.v("fine location", "Permission is revoked");
-                accessFineLocation = false;
-                // ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    //prompt if want to enable again
+                } else {
+                    permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                }
             }
 
-            if (writeExternalStorage == false && accessFineLocation == false) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                    //prompt if want to enable again
+                } else {
+                    permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+                }
+            }
+
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    //prompt if want to enable again
+                } else {
+                    permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                }
+            }
+
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    //prompt if want to enable again
+                } else {
+                    permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+                }
+            }
+
+            ActivityCompat.requestPermissions(this, permissions.toArray(new String[permissions.size()]), 1);
+
+            if (permissions.size() > 0) {
                 return false;
-            } else if (writeExternalStorage == false && accessFineLocation == true) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-                return false;
-            } else if (writeExternalStorage == true && accessFineLocation == false) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-                return false;
-            } else if (writeExternalStorage == true && accessFineLocation == true) {
+            } else {
                 return true;
-            } else return false;
+            }
+        } else {
+            return false;
         }
-        //permission is automatically granted on any sdk lower than 23 upon installation
-        Log.v("all perms", "Permission is granted");
-        return true;
-
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         for (int i = 0; i < grantResults.length - 1; i++) {
-            if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
                 if (permissions[i].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    Toast.makeText(getApplicationContext(), "Broker permissions added", Toast.LENGTH_SHORT).show();
-                    /*
-                    //run broker
-                    try {
-                        new Server().startServer();
-                        Toast.makeText(getApplicationContext(),"Broker started",Toast.LENGTH_LONG).show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.v("launch broker","io exception");
-                    }
-                    */
+                    Toast.makeText(getApplicationContext(),"Permissions needed for integrated MQTT broker withheld, please manually change",Toast.LENGTH_SHORT).show();
+                } else if (permissions[i].equals(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    Toast.makeText(getApplicationContext(),"Permissions needed for integrated MQTT broker withheld, please manually change",Toast.LENGTH_SHORT).show();
                 } else if (permissions[i].equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                    Toast.makeText(getApplicationContext(), "Geofencing permissions added", Toast.LENGTH_SHORT).show();
-                    /*
-                    Toast.makeText(getApplicationContext(),"Geofencing Permissions Added",Toast.LENGTH_LONG).show();
-                    */
-
+                    Toast.makeText(getApplicationContext(),"Permissions needed for near field integration withheld, please manually change",Toast.LENGTH_SHORT).show();
+                } else if (permissions[i].equals(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                    Toast.makeText(getApplicationContext(),"Permissions needed for near field integration withheld, please manually change",Toast.LENGTH_SHORT).show();
                 }
             }
         }
@@ -276,102 +267,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void createMQTTClient(String connectParams[]) {
 
-        // This method is called from  MQTTConnectFragment and it passes an array of
-        // strings with the information gathered from the GUI to create an MQQT client
-        MQTTClientClass mqttClient = new MQTTClientClass();
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
-    }
-
-    /*
-    The AsyncTask is called with <Params, Progress, Result>
-    This class contains all the Paho MQTT functionality
-    */
-    public class MQTTClientClass extends AsyncTask<String, Void, String[]> {
-
-        @Override
-        protected String[] doInBackground(String... paramString) {
-
-            // The same Async function will be called from different fragments, keeping the unity
-            // of the implementation. For this, the first string of the passed parameters is checked
-            // for matches with the cases to process
-            switch (paramString[0]) {
-
-                // If called from MQTTConnectFragment
-                case "connect":
-
-                    // Retrieve the information from the arguments into the local variables
-                    broker = paramString[1];
-                    port = paramString[2];
-                    brokerURI = paramString[3];
-                    clientId = paramString[4];
-
-                    // Add memory persistence to the client
-                    MemoryPersistence persistence = new MemoryPersistence();
-
-                    try {
-                        // Create client with the given URI, ID and persistence, add options and session type
-                        client = new MqttClient(brokerURI, clientId, persistence);
-                        options = new MqttConnectOptions();
-                        options.setCleanSession(true);
-                        options.setConnectionTimeout(60);
-                        options.setKeepAliveInterval(60);
-
-                        // TODO: Rid these debugging prints
-                        // Connect to the server
-                        System.out.println("Connecting to broker: " + broker);
-                        client.connect(options);
-                        System.out.println("Connected");
-
-                        return paramString;
-
-                    } catch (MqttException me) {
-                        // TODO: Rid these debugging prints
-                        System.out.println("reason " + me.getReasonCode());
-                        System.out.println("msg " + me.getMessage());
-                        System.out.println("loc " + me.getLocalizedMessage());
-                        System.out.println("cause " + me.getCause());
-                        System.out.println("excep " + me);
-                        me.printStackTrace();
-                    } catch (Exception e) {
-                        Log.d("Things Flow I/O", "Error " + e);
-                        e.printStackTrace();
-                    }
-                    break;
-
-                // If called from MQTTPublishFragment
-                case "publish":
-
-                    // Retrieve the information from the arguments into the local variables
-                    content = paramString[1];
-                    topicToPublish = paramString[2];
-                    qos = Integer.parseInt(paramString[3]);
-
-                    // Create the message to send and set the Quality of Service
-                    // TODO: Rid these debugging prints
-                    System.out.println("Publishing message: " + content);
-                    MqttMessage message = new MqttMessage(content.getBytes());
-                    message.setQos(qos);
-
-                    try {
-                        // Publish the msessage
-                        client.publish(topicToPublish, message);
-                        System.out.println("Message published");
-                        // TODO: Rid these debugging prints
-                    } catch (MqttException e) {
-                        e.printStackTrace();
-                        return null;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                    return paramString;
-
-                // If called from MQTTSubscribeFragment
-                case "subscribe":
-                    //TODO: Subscription extra actions, nothing so far
-                    break;
-            }
-            return null;
-        }
     }
 }

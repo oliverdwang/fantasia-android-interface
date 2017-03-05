@@ -65,22 +65,17 @@
 
         </LinearLayout>
 
-        <!--verbose log-->
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Verbose Log:"
-            android:textSize="24dp"/>
+            android:orientation="horizontal">
 
-        <RelativeLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <ListView
+            <Button
+                android:id="@+id/button_startGeo"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/verbose_log">
-            </ListView>
-        </RelativeLayout>
+                android:layout_height="wrap_content"
+                android:text="near field activation" />
+
+        </LinearLayout>
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>
