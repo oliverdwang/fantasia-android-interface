@@ -187,7 +187,6 @@ public class MapDBPersistentStore implements IMessagesStore, ISessionsStore {
         Set<Subscription> subs = m_persistentSubscriptions.get(clientID);
         if (!subs.contains(newSubscription)) {
             Log.d("Moquette", "updating clientID " + clientID + " subscriptions set with new subscription");
-            //TODO check the subs doesn't contain another subscription to the same topic with different
             Subscription existingSubscription = null;
             for (Subscription scanSub : subs) {
                 if (newSubscription.getTopicFilter().equals(scanSub.getTopicFilter())) {

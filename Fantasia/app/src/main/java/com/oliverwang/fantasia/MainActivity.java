@@ -234,8 +234,9 @@ public class MainActivity extends AppCompatActivity {
                     permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
                 }
             }
-
-            ActivityCompat.requestPermissions(this, permissions.toArray(new String[permissions.size()]), 1);
+            if(permissions.size() > 0) {
+                ActivityCompat.requestPermissions(this, permissions.toArray(new String[permissions.size()]), 1);
+            }
 
             if (permissions.size() > 0) {
                 return false;

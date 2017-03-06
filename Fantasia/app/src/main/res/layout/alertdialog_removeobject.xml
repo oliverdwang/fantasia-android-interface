@@ -3,9 +3,9 @@
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!--
-    ADD section for adding near field objects
-    DELETE section for removing near field objects
-    -->
-
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Not implemented yet"
+        android:textSize="24dp"/>
 </LinearLayout>

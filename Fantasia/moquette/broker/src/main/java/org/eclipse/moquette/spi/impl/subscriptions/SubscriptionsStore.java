@@ -104,7 +104,6 @@ public class SubscriptionsStore {
         try {
             tokens = parseTopic(topic);
         } catch (ParseException ex) {
-            //TODO handle the parse exception
             Log.e("Moquette", "error", ex);
 //            return;
         }
@@ -152,10 +151,7 @@ public class SubscriptionsStore {
             matchNode.subscriptions().remove(toBeRemoved);
         }
     }
-    
-    /**
-     * TODO implement testing
-     */
+
     public void clearAllSubscriptions() {
         SubscriptionTreeCollector subsCollector = new SubscriptionTreeCollector();
         bfsVisit(subscriptions, subsCollector);
@@ -200,7 +196,6 @@ public class SubscriptionsStore {
         try {
             tokens = parseTopic(topic);
         } catch (ParseException ex) {
-            //TODO handle the parse exception
             Log.e("Moquette", null, ex);
             return Collections.EMPTY_LIST;
         }
@@ -238,7 +233,6 @@ public class SubscriptionsStore {
     /**
      * Verify if the 2 topics matching respecting the rules of MQTT Appendix A
      */
-    //TODO reimplement with iterators or with queues
     public static boolean matchTopics(String msgTopic, String subscriptionTopic) {
         try {
             List<Token> msgTokens = SubscriptionsStore.parseTopic(msgTopic);

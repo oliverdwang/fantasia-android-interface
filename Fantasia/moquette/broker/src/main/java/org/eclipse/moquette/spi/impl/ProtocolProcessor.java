@@ -384,7 +384,6 @@ public class ProtocolProcessor implements EventHandler<ValueEvent> {
     }
     
     private void sendPublish(String clientId, String topic, AbstractMessage.QOSType qos, ByteBuffer message, boolean retained) {
-        //TODO pay attention to the message ID can't be 0 and it's the message sent to subscriber
         int messageID = 1;
         sendPublish(clientId, topic, qos, message, retained, messageID);
     }

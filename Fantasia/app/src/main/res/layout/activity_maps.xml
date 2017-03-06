@@ -13,20 +13,28 @@
         android:layout_height="wrap_content">
 
         <Button
+            android:id="@+id/button_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:text="Add New" />
+
+        <Button
+            android:id="@+id/button_remove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:text="Remove Existing" />
+
+        <Button
             android:id="@+id/button_return"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:minWidth="0dp"
             android:text="Return" />
-
-        <Button
-            android:id="@+id/button_manage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:minWidth="0dp"
-            android:text="Manage Near Field Objects" />
 
     </LinearLayout>
 

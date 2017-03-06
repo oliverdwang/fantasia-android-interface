@@ -118,7 +118,6 @@ class TreeNode {
                 //Create a copy of token, else if navigate 2 sibling it
                 //consumes 2 elements on the queue instead of one
                 n.matches(new LinkedBlockingQueue<Token>(tokens), matchingSubs);
-                //TODO don't create a copy n.matches(tokens, matchingSubs);
             }
         }
     }

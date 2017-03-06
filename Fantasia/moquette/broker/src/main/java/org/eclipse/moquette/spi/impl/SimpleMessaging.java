@@ -158,7 +158,6 @@ public class SimpleMessaging implements IMessaging, EventHandler<ValueEvent> {
     }
 
     private void processInit(Properties props) {
-        //TODO use a property to select the storage path
         MapDBPersistentStore mapStorage = new MapDBPersistentStore();
         m_storageService = mapStorage;
         m_sessionsStore = mapStorage;
