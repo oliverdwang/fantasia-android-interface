@@ -10,7 +10,9 @@ import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -34,11 +36,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.List;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener {
 
     private GoogleMap mMap;
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
     private NearFieldDatabaseHelper myDb;
+
+    private LocationManager locationManager;
 
     private Button returnButton;
     private Button addButton;
@@ -57,6 +61,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, this); //every 5 seconds check for near field objects within range
+        }
 
         myDb = new NearFieldDatabaseHelper(getApplicationContext());
 
@@ -78,6 +87,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 final EditText setLat = (EditText) alertDialogAddObject.findViewById(R.id.editText_lat);
                 final EditText setLong = (EditText) alertDialogAddObject.findViewById(R.id.editText_long);
                 final EditText setRadius = (EditText) alertDialogAddObject.findViewById(R.id.editText_radius);
+                final EditText setTopic = (EditText) alertDialogAddObject.findViewById(R.id.editText_topic);
+                final EditText setMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_message);
                 final RadioGroup setMethod = (RadioGroup) alertDialogAddObject.findViewById(R.id.radioGroup_setMethod);
                 setMethod.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
                     @Override
@@ -111,6 +122,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     setName.setError("Please add a name");
                                 } else if(setRadius.getText().toString().equals("")) {
                                     setRadius.setError("Please add a radius");
+                                } else if(setTopic.getText().toString().equals("")) {
+                                    setTopic.setError("Please add a topic");
+                                } else if(setMessage.getText().toString().equals("")) {
+                                    setMessage.setError("Please add a message");
                                 } else {
                                     switch(method) {
                                         case -1:
@@ -152,7 +167,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             break;
                                     }
                                     if(newLatitude != 0 && newLongitude != 0) {
-                                        myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()));
+                                        myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setMessage.getText().toString());
                                         mMap.addMarker(new MarkerOptions().position(new LatLng(newLatitude, newLongitude)).title(setName.getText().toString()));
                                     } else {
                                         //@todo handle if lat or long is 0
@@ -182,7 +197,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 removeObjectBuilder.setPositiveButton("Save",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
-                                //@todo add objects and check if any values are null
+                                //@todo remove objects from list view
                             }
                         });
                 removeObjectBuilder.setNegativeButton("Exit",
@@ -195,6 +210,68 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 removeObjectAlert.show();
             }
         });
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Cursor objects = myDb.getAllData();
+        try {
+            //for new objects
+            while (objects.moveToNext()) {
+                Location tempObject = new Location(LocationManager.GPS_PROVIDER);
+                tempObject.setLatitude(objects.getDouble(2));
+                tempObject.setLongitude(objects.getDouble(3));
+                if(tempObject.distanceTo(getCurrentLocation()) <= objects.getInt(4) + getCurrentLocation().getAccuracy()) {
+                    //activate object
+                    Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show(); //@todo replace with mqtt publish message
+                    myDb.updateState(objects.getInt(0), 1);
+                } else if(objects.getInt(7) == 1) {
+                    //keep object activated
+                    myDb.updateState(objects.getInt(0), 2);
+                } else if(objects.getInt(7) == 2) {
+                    //keep object activated
+                    myDb.updateState(objects.getInt(0), 3);
+                } else if(objects.getInt(7) == 3) {
+                    //deactivate object
+                    Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show(); //@todo replace with mqtt publish message
+                    myDb.updateState(objects.getInt(0), 0);
+                }
+            }
+        } finally {
+            objects.close();
+        }
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This feature requires location services to be enabled. Do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        dialog.cancel();
+                        startActivity(new Intent(MapsActivity.this, MainActivity.class));
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        //do nothing
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        // TODO Auto-generated method stub
+
     }
 
     public Address getCoordinatesFromAddress(String strAddress){
@@ -223,8 +300,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return false;
     }
 
+    public Location getCurrentLocation() {
+        Criteria criteria = new Criteria();
+        if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            Location location = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
+            if (location != null) {
+                return location;
+            }
+        } else {
+            Toast.makeText(getApplicationContext(),"Location permissions not granted. Please manually enable permissions through settings.",Toast.LENGTH_LONG).show();
+        }
+        return null;
+    }
+
     public double getCurrentLatitude() {
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
@@ -240,7 +329,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public double getCurrentLongitude() {
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
@@ -256,7 +344,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void gotoCurrentPosition() {
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        //LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
@@ -267,9 +355,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(new LatLng(location.getLatitude(), location.getLongitude()))      // Sets the center of the map to location user
-                        .zoom(17)                   // Sets the zoom
-                        .bearing(225)                // Sets the orientation of the camera
-                        //.tilt(40)                   // Sets the tilt of the camera to 40 degrees
+                        .zoom(18)                   // Sets the zoom
+                        //.bearing(225)                // Sets the orientation of the camera
+                        .tilt(20)                   // Sets the tilt of the camera to 40 degrees
                         .build();                   // Creates a CameraPosition from the builder
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             }
@@ -290,7 +378,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        statusCheck(); //check if location service is enabled
         mMap.setOnMyLocationButtonClickListener(this);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
@@ -309,30 +396,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         } finally {
             objects.close();
-        }
-    }
-
-    public void statusCheck() {
-        final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage("This feature requires location services to be enabled. Do you want to enable it?")
-                    .setCancelable(false)
-                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                        public void onClick(final DialogInterface dialog, final int id) {
-                            startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                        }
-                    })
-                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                        public void onClick(final DialogInterface dialog, final int id) {
-                            dialog.cancel();
-                            startActivity(new Intent(MapsActivity.this, MainActivity.class));
-                        }
-                    });
-            final AlertDialog alert = builder.create();
-            alert.show();
-
         }
     }
 }

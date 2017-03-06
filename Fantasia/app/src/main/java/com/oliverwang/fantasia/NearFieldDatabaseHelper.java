@@ -19,6 +19,9 @@ public class NearFieldDatabaseHelper  extends SQLiteOpenHelper{
     private static final String COL_3 = "LAT";
     private static final String COL_4 = "LONG";
     private static final String COL_5 = "RADIUS";
+    private static final String COL_6 = "TOPIC";
+    private static final String COL_7 = "MESSAGE";
+    private static final String COL_8 = "STATE";
 
     private static NearFieldDatabaseHelper instance;
 
@@ -38,21 +41,39 @@ public class NearFieldDatabaseHelper  extends SQLiteOpenHelper{
         //LAT - Real
         //LONG - Real
         //RADIUS - Integer
+        //TOPIC - Text
+        //MESSAGE - Text
+        //STATE - Integer
+        //  0: off
+        //  1: on
+        //  2: off for 1 cycle
+        //  3: off for 2 cycles
         //MAKE SURE HAVE SPACE AFTER CREATE TABLE OR MAY CRASH APP!!!
-        db.execSQL("CREATE TABLE " + TABLE_NAME + " (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT, LAT REAL, LONG REAL, RADIUS INTEGER)");
+        db.execSQL("CREATE TABLE " + TABLE_NAME + " (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT, LAT REAL, LONG REAL, RADIUS INTEGER, TOPIC TEXT, MESSAGE TEXT, STATE INTEGER)");
 
 
     }
 
-    public boolean insertData(String name, Double latitude, Double longitude, int radius){
+    public boolean insertData(String name, Double latitude, Double longitude, int radius, String topic, String message){
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(COL_2, name);
         contentValues.put(COL_3, latitude);
         contentValues.put(COL_4, longitude);
         contentValues.put(COL_5, radius);
+        contentValues.put(COL_6, topic);
+        contentValues.put(COL_7, message);
+        contentValues.put(COL_8, 0);
 
         long result = db.insert(TABLE_NAME, null, contentValues);
+        if (result == -1) return false;
+        else return true;
+    }
+    public boolean updateState(int row, int value) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COL_8, value);
+        long result = db.update(TABLE_NAME, contentValues, COL_8 + "= ?", new String[] {Integer.toString(row)});
         if (result == -1) return false;
         else return true;
     }
