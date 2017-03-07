@@ -41,6 +41,7 @@
             android:id="@+id/editText_lat"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
             android:layout_below="@+id/editText_address"
             android:layout_toEndOf="@+id/textView3"
             android:ems="10"
@@ -51,6 +52,7 @@
             android:id="@+id/editText_long"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
             android:layout_below="@+id/editText_lat"
             android:layout_toEndOf="@+id/textView5"
             android:ems="10"
@@ -61,6 +63,7 @@
             android:id="@+id/editText_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
             android:layout_alignParentTop="true"
             android:layout_toEndOf="@+id/textView6"
             android:ems="10"
@@ -80,27 +83,28 @@
             android:id="@+id/editText_radius"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_below="@+id/editText_long"
+            android:layout_toEndOf="@+id/textView_radius"
             android:ems="10"
             android:inputType="number"
-            android:text=""
-            android:layout_below="@+id/editText_long"
-            android:layout_alignParentEnd="true"
-            android:layout_toEndOf="@+id/textView_radius" />
+            android:text="" />
 
         <TextView
             android:id="@+id/textView8"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Address:"
+            android:textSize="24dp"
             android:layout_alignBaseline="@+id/editText_address"
-            android:layout_alignBottom="@+id/editText_address"
-            android:layout_toStartOf="@+id/editText_lat"
-            android:text="Address: "
-            android:textSize="24dp" />
+            android:layout_alignParentStart="true"
+            android:layout_alignBottom="@+id/editText_address" />
 
         <EditText
             android:id="@+id/editText_address"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
             android:layout_below="@+id/radioGroup_setMethod"
             android:layout_toEndOf="@+id/textView8"
             android:ems="10"
@@ -143,38 +147,39 @@
             android:id="@+id/textView4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16dp"
-            android:text="*Not including 68% confidence distance for location API"
+            android:layout_alignParentStart="true"
             android:layout_below="@+id/editText_message"
-            android:layout_alignParentStart="true" />
+            android:text="*Not including 68% confidence distance for location API"
+            android:textSize="16dp" />
 
         <TextView
             android:id="@+id/textView9"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="24dp"
-            android:text="MQTT Topic:"
             android:layout_alignBaseline="@+id/editText_topic"
             android:layout_alignBottom="@+id/editText_topic"
-            android:layout_alignParentStart="true" />
+            android:layout_alignParentStart="true"
+            android:text="MQTT Topic:"
+            android:textSize="24dp" />
 
         <EditText
             android:id="@+id/editText_topic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:ems="10"
+            android:layout_alignParentEnd="true"
             android:layout_below="@+id/editText_radius"
-            android:layout_toEndOf="@+id/textView9" />
+            android:layout_toEndOf="@+id/textView9"
+            android:ems="10" />
 
         <TextView
             android:id="@+id/textView10"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="24dp"
-            android:text="MQTT Message:"
             android:layout_alignBaseline="@+id/editText_message"
             android:layout_alignBottom="@+id/editText_message"
-            android:layout_alignParentStart="true" />
+            android:layout_alignParentStart="true"
+            android:text="MQTT Message:"
+            android:textSize="24dp" />
 
         <EditText
             android:id="@+id/editText_message"
@@ -182,8 +187,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_below="@+id/editText_topic"
-            android:ems="10"
-            android:layout_toEndOf="@+id/textView10" />
+            android:ems="10" />
 
     </RelativeLayout>
 </LinearLayout>
