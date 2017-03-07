@@ -42,7 +42,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private NearFieldDatabaseHelper myDb;
 
-    private LocationManager locationManager;
+    private LocationManager mqttLocationManager;
 
     private Button returnButton;
     private Button addButton;
@@ -62,9 +62,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        mqttLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, this); //every 5 seconds check for near field objects within range
+            mqttLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, this); //every 5 seconds check for near field objects within range
         }
 
         myDb = new NearFieldDatabaseHelper(getApplicationContext());
@@ -301,6 +301,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public Location getCurrentLocation() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Location location = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
@@ -314,6 +315,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public double getCurrentLatitude() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
@@ -329,6 +331,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public double getCurrentLongitude() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
@@ -344,7 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void gotoCurrentPosition() {
-        //LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
 
         //go to current location
