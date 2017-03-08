@@ -1,11 +1,13 @@
 package com.oliverwang.fantasia;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -282,8 +284,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 tempObject.setLatitude(objects.getDouble(2));
                 tempObject.setLongitude(objects.getDouble(3));
                 if(tempObject.distanceTo(getCurrentLocation()) <= objects.getInt(4) + getCurrentLocation().getAccuracy()) { //@todo decide whether to keep standard deviation location radius
-                    //activate object
-                    Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show(); //@todo replace with mqtt publish message
+                    if(objects.getInt(8) == 0) { //activate object
+                        Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
+                        String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
+                        publishMQTTmessage(connectParams);
+                    }
                     myDb.updateState(objects.getInt(0), 1);
                 } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
                     //keep object activated
@@ -292,8 +297,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //keep object activated
                     myDb.updateState(objects.getInt(0), 3);
                 } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
-                    //deactivate object
-                    Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show(); //@todo replace with mqtt publish message
+                    if(objects.getInt(8) == 0) { //deactivate object
+                        Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
+                        String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
+                        publishMQTTmessage(connectParams);
+                    }
                     myDb.updateState(objects.getInt(0), 0);
                 }
             }
@@ -301,6 +309,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //close cursor in end to conserve resources
             objects.close();
         }
+    }
+
+    public void publishMQTTmessage(String publishParams[]) {
+
+        // This method is called from  MQTTPublishFragment and it passes an array of
+        // strings with the information gathered from the GUI to create an MQQT message
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(publishParams);
     }
 
     @Override
@@ -420,7 +436,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(new LatLng(location.getLatitude(), location.getLongitude()))      // Sets the center of the map to location user
-                        .zoom(20)                   // Sets the zoom
+                        .zoom(19)                   // Sets the zoom
                         //.bearing(225)                // Sets the orientation of the camera
                         .tilt(20)                   // Sets the tilt of the camera to 40 degrees
                         .build();                   // Creates a CameraPosition from the builder
@@ -444,7 +460,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap; //instantiate map
         mMap.setOnMyLocationButtonClickListener(this);
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true); //enable my location dot
         }
 
@@ -461,6 +477,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         } finally {
             objects.close(); //close cursor to save resources
+        }
+
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(getApplicationContext(),"For best results, wait 10 seconds for high accuracy GPS to activate",Toast.LENGTH_LONG).show();
         }
     }
 }

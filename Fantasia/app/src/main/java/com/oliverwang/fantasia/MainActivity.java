@@ -267,7 +267,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void createMQTTClient(String connectParams[]) {
-
         // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
