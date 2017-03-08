@@ -20,8 +20,9 @@ public class NearFieldDatabaseHelper  extends SQLiteOpenHelper{
     private static final String COL_4 = "LONG";
     private static final String COL_5 = "RADIUS";
     private static final String COL_6 = "TOPIC";
-    private static final String COL_7 = "MESSAGE";
-    private static final String COL_8 = "STATE";
+    private static final String COL_7 = "ACTIVATEMESSAGE";
+    private static final String COL_8 = "DEACTIVATEMESSAGE";
+    private static final String COL_9 = "STATE";
 
     private static NearFieldDatabaseHelper instance;
 
@@ -49,12 +50,12 @@ public class NearFieldDatabaseHelper  extends SQLiteOpenHelper{
         //  2: off for 1 cycle
         //  3: off for 2 cycles
         //MAKE SURE HAVE SPACE AFTER CREATE TABLE OR MAY CRASH APP!!!
-        db.execSQL("CREATE TABLE " + TABLE_NAME + " (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT, LAT REAL, LONG REAL, RADIUS INTEGER, TOPIC TEXT, MESSAGE TEXT, STATE INTEGER)");
+        db.execSQL("CREATE TABLE " + TABLE_NAME + " (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT, LAT REAL, LONG REAL, RADIUS INTEGER, TOPIC TEXT, ACTIVATEMESSAGE TEXT, DEACTIVATEMESSAGE TEXT, STATE INTEGER)");
 
 
     }
 
-    public boolean insertData(String name, Double latitude, Double longitude, int radius, String topic, String message){
+    public boolean insertData(String name, Double latitude, Double longitude, int radius, String topic, String activateMessage, String deactivateMessage){
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(COL_2, name);
@@ -62,8 +63,9 @@ public class NearFieldDatabaseHelper  extends SQLiteOpenHelper{
         contentValues.put(COL_4, longitude);
         contentValues.put(COL_5, radius);
         contentValues.put(COL_6, topic);
-        contentValues.put(COL_7, message);
-        contentValues.put(COL_8, 0);
+        contentValues.put(COL_7, activateMessage);
+        contentValues.put(COL_8, deactivateMessage);
+        contentValues.put(COL_9, 0);
 
         long result = db.insert(TABLE_NAME, null, contentValues);
         if (result == -1) return false;

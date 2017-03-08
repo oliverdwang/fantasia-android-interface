@@ -12,7 +12,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -23,7 +22,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
@@ -79,11 +77,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 startActivity(new Intent(MapsActivity.this, MainActivity.class));
             }
         });
-        addButton = (Button) findViewById(R.id.button_add);
+        addButton = (Button) findViewById(R.id.button_add); //
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                //if add new near field object button selected
+            public void onClick(View v) { //if add new near field object button selected
                 //create layout
                 LayoutInflater addObjectInflater = getLayoutInflater();
                 View alertDialogAddObject = addObjectInflater.inflate(R.layout.alertdialog_addobject, null);
@@ -93,12 +90,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 final EditText setLong = (EditText) alertDialogAddObject.findViewById(R.id.editText_long);
                 final EditText setRadius = (EditText) alertDialogAddObject.findViewById(R.id.editText_radius);
                 final EditText setTopic = (EditText) alertDialogAddObject.findViewById(R.id.editText_topic);
-                final EditText setMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_message);
+                final EditText setActivateMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_activateMessage);
+                final EditText setDeactivateMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_deactivateMessage);
                 final RadioGroup setMethod = (RadioGroup) alertDialogAddObject.findViewById(R.id.radioGroup_setMethod);
-                //check which method selected in radio group to selection location method
                 setMethod.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
                     @Override
-                    public void onCheckedChanged(RadioGroup group, int checkedId) {
+                    public void onCheckedChanged(RadioGroup group, int checkedId) { //check which method selected in radio group to selection location method
                         int id=setMethod.getCheckedRadioButtonId();
                         View radioButton = setMethod.findViewById(id);
                         if(radioButton.getId() == R.id.radioButton_currentLocation) {
@@ -122,9 +119,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 AlertDialog.Builder addObjectBuilder = new AlertDialog.Builder(MapsActivity.this);
                 addObjectBuilder.setView(alertDialogAddObject);
                 addObjectBuilder.setTitle("Add Object");
-                addObjectBuilder.setPositiveButton("Save",
+                addObjectBuilder.setPositiveButton("Save", null);
+                addObjectBuilder.setNegativeButton("Exit",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                final AlertDialog addObjectAlert = addObjectBuilder.create();
+                addObjectAlert.setOnShowListener(new DialogInterface.OnShowListener() { //"SAVE" button must be done through onshowlistener so if any required fields are empty then the dialog doesn;t close
+                    @Override
+                    public void onShow(DialogInterface dialog) {
+                        Button button = ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE);
+                        button.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
                                 //if the user decides the save the new object
                                 //set default temp lat & long as 0
                                 double newLatitude = 0;
@@ -142,9 +151,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     //if topic field not filled in, prompt user to fill in before submitting again
                                     setTopic.setError("Please add a topic");
                                     canSubmit = false;
-                                } else if(setMessage.getText().toString().equals("")) {
+                                } else if(setActivateMessage.getText().toString().equals("")) {
                                     //if message field not filled in, prompt user to fill in before submitting again
-                                    setMessage.setError("Please add a message");
+                                    setActivateMessage.setError("Please add a message");
+                                    canSubmit = false;
+                                } else if(setDeactivateMessage.getText().toString().equals("")) {
+                                    //if message field not filled in, prompt user to fill in before submitting again
+                                    setDeactivateMessage.setError("Please add a message");
                                     canSubmit = false;
                                 } else {
                                     switch(method) {
@@ -209,9 +222,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     if(newLatitude != 0 && newLongitude != 0 && canSubmit == true) { //if all the information needed is valid
                                         //debug stuff
                                         Log.v("new object added","setLat value: " + setLat.getText().toString() + "\nsetLong value: " + setLong.getText().toString());
-                                        Log.v("new object added","Name: " + setName.getText().toString() + "\nLat: " + newLatitude + "\nLong: " + newLongitude + "\nRadius: " + setRadius.getText().toString() + "\nTopic: " + setTopic.getText().toString() + "\nMessage: " + setMessage.getText().toString());
+                                        Log.v("new object added","Name: " + setName.getText().toString() + "\nLat: " + newLatitude + "\nLong: " + newLongitude + "\nRadius: " + setRadius.getText().toString() + "\nTopic: " + setTopic.getText().toString() + "\nMessage: " + setActivateMessage.getText().toString());
                                         //(i) insert into database for future loads
-                                        boolean success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setMessage.getText().toString());
+                                        boolean success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setActivateMessage.getText().toString(), setDeactivateMessage.getText().toString());
                                         if (success) {
                                             Log.v("new object added","successfully added to database");
                                         } else {
@@ -219,19 +232,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         }
                                         //(ii) add a marker to the map where the new object is
                                         mMap.addMarker(new MarkerOptions().position(new LatLng(newLatitude, newLongitude)).title(setName.getText().toString()));
+                                        addObjectAlert.dismiss();
                                     } else {
                                         //@todo handle if lat or long is 0
                                     }
                                 }
                             }
                         });
-                addObjectBuilder.setNegativeButton("Exit",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                AlertDialog addObjectAlert = addObjectBuilder.create();
+                    }
+                });
                 addObjectAlert.show();
             }
         });
@@ -411,7 +420,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(new LatLng(location.getLatitude(), location.getLongitude()))      // Sets the center of the map to location user
-                        .zoom(18)                   // Sets the zoom
+                        .zoom(20)                   // Sets the zoom
                         //.bearing(225)                // Sets the orientation of the camera
                         .tilt(20)                   // Sets the tilt of the camera to 40 degrees
                         .build();                   // Creates a CameraPosition from the builder
