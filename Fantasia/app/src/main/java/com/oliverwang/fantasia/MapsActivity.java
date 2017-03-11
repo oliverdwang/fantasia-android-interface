@@ -101,16 +101,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         int id=setMethod.getCheckedRadioButtonId();
                         View radioButton = setMethod.findViewById(id);
                         if(radioButton.getId() == R.id.radioButton_currentLocation) {
+                            Log.v("radio group", "current loc");
                             method = 0;
                             setAddress.setEnabled(false);
                             setLat.setEnabled(false);
                             setLong.setEnabled(false);
                         } else if (radioButton.getId() == R.id.radioButton_address) {
+                            Log.v("radio group", "address");
                             method = 1;
                             setAddress.setEnabled(true);
                             setLat.setEnabled(false);
                             setLong.setEnabled(false);
                         } else if (radioButton.getId() == R.id.radioButton_coordinates) {
+                            Log.v("radio group", "coords");
                             method = 2;
                             setLat.setEnabled(true);
                             setLong.setEnabled(true);
@@ -164,12 +167,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 } else {
                                     switch(method) {
                                         case -1:
+                                            Log.v("location method", "moone");
                                             //if no location method selected
                                             Toast.makeText(getApplicationContext(),"Please select a location type",Toast.LENGTH_SHORT).show();
                                             canSubmit = false;
                                             break;
 
                                         case 0:
+                                            Log.v("location method", "current location");
+                                            if (getCurrentLocation() != null) {
+                                                Location temp = getCurrentLocation();
+                                                newLatitude = temp.getLatitude();
+                                                newLongitude = temp.getLongitude();
+                                            } else {
+                                                canSubmit = false;
+                                            }
+                                            break;
+                                            /*
                                             //if use current location method selected
                                             if(getCurrentLatitude() != 0) {
                                                 newLatitude = getCurrentLatitude();
@@ -184,8 +198,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                 canSubmit = false;
                                             }
                                             break;
+                                            */
 
                                         case 1:
+                                            Log.v("location method", "address");
                                             //if use address as location method selected
                                             if(setAddress.getText().toString().equals("")) {
                                                 //if address field is blank
@@ -205,6 +221,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             break;
 
                                         case 2: //@todo fix coordinate system, not showing up correctly
+                                            Log.v("location method", "coordinates");
                                             //if use coordinates as location method selection
                                             if(setLat.getText().toString().equals("")) {
                                                 //if latitude field not filled in, prompt user to fill in before submitting again
@@ -220,7 +237,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             }
                                             break;
                                     }
-                                    Log.v("new object added", "canSubmit value: " + canSubmit);
+                                    Log.v("new object added", "canSubmit value: " + canSubmit + "\n newLat: " + newLatitude + "\nnewLong: " + newLongitude);
                                     if(newLatitude != 0 && newLongitude != 0 && canSubmit == true) { //if all the information needed is valid
                                         //debug stuff
                                         Log.v("new object added","setLat value: " + setLat.getText().toString() + "\nsetLong value: " + setLong.getText().toString());
@@ -275,34 +292,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onLocationChanged(Location location) { //called every 5 seconds
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
         Cursor objects = myDb.getAllData();
         //get all entries in database
         try {
             //for new objects
             while (objects.moveToNext()) {
-                Location tempObject = new Location(LocationManager.GPS_PROVIDER);
+                Location tempObject = new Location(locationManager.getBestProvider(criteria, false));
                 tempObject.setLatitude(objects.getDouble(2));
                 tempObject.setLongitude(objects.getDouble(3));
-                if(tempObject.distanceTo(getCurrentLocation()) <= objects.getInt(4) + getCurrentLocation().getAccuracy()) { //@todo decide whether to keep standard deviation location radius
-                    if(objects.getInt(8) == 0) { //activate object
-                        Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
-                        String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
-                        publishMQTTmessage(connectParams);
+                if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    if(tempObject.distanceTo(getCurrentLocation()) <= objects.getInt(4) + getCurrentLocation().getAccuracy()) {
+                        if(objects.getInt(8) == 0) { //activate object
+                            Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
+                            String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
+                            publishMQTTmessage(connectParams);
+                        }
+                        myDb.updateState(objects.getInt(0), 1);
+                    } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
+                        //keep object activated
+                        myDb.updateState(objects.getInt(0), 2);
+                    } else if(objects.getInt(7) == 2) { //if disconnected for 10 sec, keep attached
+                        //keep object activated
+                        myDb.updateState(objects.getInt(0), 3);
+                    } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
+                        if(objects.getInt(8) == 0) { //deactivate object
+                            Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
+                            String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
+                            publishMQTTmessage(connectParams);
+                        }
+                        myDb.updateState(objects.getInt(0), 0);
                     }
-                    myDb.updateState(objects.getInt(0), 1);
-                } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
-                    //keep object activated
-                    myDb.updateState(objects.getInt(0), 2);
-                } else if(objects.getInt(7) == 2) { //if disconnected for 10 sec, keep attached
-                    //keep object activated
-                    myDb.updateState(objects.getInt(0), 3);
-                } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
-                    if(objects.getInt(8) == 0) { //deactivate object
-                        Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
-                        String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
-                        publishMQTTmessage(connectParams);
+                } else {
+                    if(tempObject.distanceTo(getCurrentLocation()) <= objects.getInt(4)) {
+                        if(objects.getInt(8) == 0) { //activate object
+                            Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
+                            String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
+                            publishMQTTmessage(connectParams);
+                        }
+                        myDb.updateState(objects.getInt(0), 1);
+                    } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
+                        //keep object activated
+                        myDb.updateState(objects.getInt(0), 2);
+                    } else if(objects.getInt(7) == 2) { //if disconnected for 10 sec, keep attached
+                        //keep object activated
+                        myDb.updateState(objects.getInt(0), 3);
+                    } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
+                        if(objects.getInt(8) == 0) { //deactivate object
+                            Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
+                            String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
+                            publishMQTTmessage(connectParams);
+                        }
+                        myDb.updateState(objects.getInt(0), 0);
                     }
-                    myDb.updateState(objects.getInt(0), 0);
                 }
             }
         } finally {
@@ -384,6 +427,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (location != null) { //if current location isn't nonexistent, return it
                 return location;
             }
+            Log.v("getCurrentLocation", "is null");
         } else { //if no permissions
             Toast.makeText(getApplicationContext(),"Location permissions not granted. Please manually enable permissions through settings.",Toast.LENGTH_LONG).show(); //tell the user
         }
