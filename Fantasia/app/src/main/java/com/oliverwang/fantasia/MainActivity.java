@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private Button configureClient;
     private Button runClient;
     private Button startGeo;
+    private Button tempPub;
 
     //@todo add function to refresh listview on update of log arraylist
     @Override
@@ -73,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
         configureClient = (Button) findViewById(R.id.configure_client);
         runClient = (Button) findViewById(R.id.run_client);
         startGeo = (Button) findViewById(R.id.button_startGeo);
+        tempPub = (Button) findViewById(R.id.button_testPub);
 
         //set onClickListener for buttons
         configureBroker.setOnClickListener(buttonOnClickListener);
@@ -80,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         configureClient.setOnClickListener(buttonOnClickListener);
         runClient.setOnClickListener(buttonOnClickListener);
         startGeo.setOnClickListener(buttonOnClickListener);
+        tempPub.setOnClickListener(buttonOnClickListener);
 
         isPermissionGranted();
     }
@@ -196,9 +200,21 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.button_startGeo:
                     startActivity(new Intent(MainActivity.this, MapsActivity.class));
                     break;
+
+                case R.id.button_testPub:
+                    String testConnectParams[] = {"publish", "1", "phone/led"};
+                    publishMQTTmessage(testConnectParams);
             }
         }
     };
+
+    public void publishMQTTmessage(String publishParams[]) {
+
+        // This method is called from  MQTTPublishFragment and it passes an array of
+        // strings with the information gathered from the GUI to create an MQQT message
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(publishParams);
+    }
 
     public boolean isPermissionGranted() {
         ArrayList<String> permissions = new ArrayList<>();

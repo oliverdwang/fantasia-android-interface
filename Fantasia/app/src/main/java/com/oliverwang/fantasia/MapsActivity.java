@@ -242,6 +242,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         //debug stuff
                                         Log.v("new object added","setLat value: " + setLat.getText().toString() + "\nsetLong value: " + setLong.getText().toString());
                                         Log.v("new object added","Name: " + setName.getText().toString() + "\nLat: " + newLatitude + "\nLong: " + newLongitude + "\nRadius: " + setRadius.getText().toString() + "\nTopic: " + setTopic.getText().toString() + "\nMessage: " + setActivateMessage.getText().toString());
+                                        //get ip
+
                                         //(i) insert into database for future loads
                                         boolean success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setActivateMessage.getText().toString(), setDeactivateMessage.getText().toString());
                                         if (success) {
