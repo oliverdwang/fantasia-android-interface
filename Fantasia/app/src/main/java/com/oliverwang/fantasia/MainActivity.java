@@ -50,9 +50,9 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
-    public String brokerString = "127.0.0.1";
-    public String portString = "1883";
-    public String clientString = "phone";
+    public String brokerString;
+    public String portString;
+    public String clientString;
     public String protocol;
     public String filePath;
 
@@ -61,7 +61,11 @@ public class MainActivity extends AppCompatActivity {
     private Button configureClient;
     private Button runClient;
     private Button startGeo;
-    private Button tempPub;
+
+    private static final String CLIENT_SETTINGS = "clientSettings";
+    private static final String SETTINGS_BROKER = "brokerKey";
+    private static final String SETTINGS_PORT = "portKey";
+    private static final String SETTINGS_CLIENTID = "clientIdKey";
 
     //@todo add function to refresh listview on update of log arraylist
     @Override
@@ -69,13 +73,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+        String restoredText = prefs.getString("text", null);
+        brokerString = prefs.getString(SETTINGS_BROKER, "127.0.0.1");
+        portString = prefs.getString(SETTINGS_PORT, "1883");
+        clientString = prefs.getString(SETTINGS_CLIENTID, "phone");
+
         //setup all objects
         configureBroker = (Button) findViewById(R.id.configure_broker);
         runBroker = (Button) findViewById(R.id.run_broker);
         configureClient = (Button) findViewById(R.id.configure_client);
         runClient = (Button) findViewById(R.id.run_client);
         startGeo = (Button) findViewById(R.id.button_startGeo);
-        tempPub = (Button) findViewById(R.id.button_testPub);
 
         //set onClickListener for buttons
         configureBroker.setOnClickListener(buttonOnClickListener);
@@ -83,8 +92,6 @@ public class MainActivity extends AppCompatActivity {
         configureClient.setOnClickListener(buttonOnClickListener);
         runClient.setOnClickListener(buttonOnClickListener);
         startGeo.setOnClickListener(buttonOnClickListener);
-        tempPub.setOnClickListener(buttonOnClickListener);
-
         isPermissionGranted();
     }
 
@@ -140,6 +147,11 @@ public class MainActivity extends AppCompatActivity {
                     final EditText setBroker = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_broker);
                     final EditText setPort = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_port);
                     final EditText setClientID = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_clientid);
+
+                    setBroker.setText(brokerString);
+                    setPort.setText(portString);
+                    setClientID.setText(clientString);
+
                     Button helpBroker = (Button) alertDialogConfigureClientLayout.findViewById(R.id.button_helpBroker);
                     helpBroker.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -170,6 +182,11 @@ public class MainActivity extends AppCompatActivity {
                                     brokerString = setBroker.getText().toString();
                                     portString = setPort.getText().toString();
                                     clientString = setClientID.getText().toString();
+                                    SharedPreferences.Editor editor = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE).edit();
+                                    editor.putString(SETTINGS_BROKER, brokerString);
+                                    editor.putString(SETTINGS_PORT, portString);
+                                    editor.putString(SETTINGS_CLIENTID, clientString);
+                                    editor.commit();
                                 }
                             });
                     configureClientBuilder.setNegativeButton("Exit",
@@ -185,16 +202,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case R.id.run_client:
-                    // This String is built depending on the type of connection and data from the UI
-                    String URIbroker;
-
-                    URIbroker = "tcp://" + brokerString + ":" + portString;
-                    protocol = "tcp";
-
-                    // Bundle the parameters, and call the parent Activity method to start the connection
-                    String connectParams[] = {"connect", brokerString, portString,
-                            URIbroker, clientString, protocol, filePath};
-                    createMQTTClient(connectParams);
+                    createMQTTClient();
                     break;
 
                 case R.id.button_startGeo:
@@ -282,7 +290,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void createMQTTClient(String connectParams[]) {
+    public void createMQTTClient() {
+
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+
+        URIbroker = "tcp://" + brokerString + ":" + portString;
+        protocol = "tcp";
+
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", brokerString, portString,
+                URIbroker, clientString, protocol, filePath};
         // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);

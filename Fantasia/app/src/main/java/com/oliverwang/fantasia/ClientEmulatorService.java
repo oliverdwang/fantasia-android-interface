@@ -2,13 +2,18 @@ package com.oliverwang.fantasia;
 
 import android.app.Service;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.widget.Chronometer;
+
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -20,6 +25,8 @@ import java.nio.ByteOrder;
  */
 
 public class ClientEmulatorService extends Service {
+
+    private NearFieldDatabaseHelper myDb;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -48,10 +55,30 @@ public class ClientEmulatorService extends Service {
                     try {
                         ipAddressString = InetAddress.getByAddress(ipByteArray).getHostAddress();
                     } catch (UnknownHostException ex) {
-                        Log.e("WIFIIP", "Unable to get host address.");
+                        Log.e("WIFI IP", "Unable to get host address.");
                         ipAddressString = null;
                     }
-                    //TODO check if equal to IP
+                    //open object database
+                    myDb = new NearFieldDatabaseHelper(getApplicationContext());
+                    Cursor objects = myDb.getAllData(); //get all objects
+                    try {
+                        while (objects.moveToNext()) {
+                            if(objects.getString(9) != null) {
+                                if (objects.getString(9).equals(ipAddressString)) {
+                                    //TODO emulate object ping
+
+                                    Intent intent = new Intent("PING_AS");
+                                    // add data
+                                    intent.putExtra("CLIENT", "message");
+                                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+                                }
+                            } else {
+                                Log.v("client emulator service", objects.getString(1) + " does not have an ip in the database, so skipping...");
+                            }
+                        }
+                    } finally {
+                        objects.close(); //close cursor to save resources
+                    }
                 }
 
                 //stopSelf();

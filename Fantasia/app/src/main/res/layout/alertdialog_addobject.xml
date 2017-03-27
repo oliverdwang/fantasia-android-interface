@@ -153,7 +153,7 @@
                 android:layout_height="wrap_content"
                 android:text="*Not including 68% confidence distance for location API"
                 android:textSize="16dp"
-                android:layout_below="@+id/editText_deactivateMessage"
+                android:layout_below="@+id/checkBox_localDebug"
                 android:layout_alignParentStart="true" />
 
             <TextView
@@ -198,20 +198,29 @@
                 android:id="@+id/textView_deactivateMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Deactivate Message:"
-                android:textSize="24dp"
                 android:layout_alignBaseline="@+id/editText_deactivateMessage"
                 android:layout_alignBottom="@+id/editText_deactivateMessage"
-                android:layout_alignParentStart="true" />
+                android:layout_alignParentStart="true"
+                android:text="Deactivate Message:"
+                android:textSize="24dp" />
 
             <EditText
                 android:id="@+id/editText_deactivateMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ems="10"
-                android:layout_below="@+id/editText_activateMessage"
                 android:layout_alignParentEnd="true"
-                android:layout_toEndOf="@+id/textView_deactivateMessage" />
+                android:layout_below="@+id/editText_activateMessage"
+                android:layout_toEndOf="@+id/textView_deactivateMessage"
+                android:ems="10" />
+
+            <CheckBox
+                android:id="@+id/checkBox_localDebug"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Enable Local Debugging"
+                android:layout_below="@+id/editText_deactivateMessage"
+                android:layout_alignParentStart="true" />
 
         </RelativeLayout>
 

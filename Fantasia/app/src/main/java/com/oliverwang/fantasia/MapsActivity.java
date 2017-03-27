@@ -14,6 +14,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
@@ -35,6 +37,10 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteOrder;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener {
@@ -95,6 +101,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 final EditText setActivateMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_activateMessage);
                 final EditText setDeactivateMessage = (EditText) alertDialogAddObject.findViewById(R.id.editText_deactivateMessage);
                 final RadioGroup setMethod = (RadioGroup) alertDialogAddObject.findViewById(R.id.radioGroup_setMethod);
+                final CheckBox localDebugging = (CheckBox) alertDialogAddObject.findViewById(R.id.checkBox_localDebug);
                 setMethod.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(RadioGroup group, int checkedId) { //check which method selected in radio group to selection location method
@@ -242,10 +249,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         //debug stuff
                                         Log.v("new object added","setLat value: " + setLat.getText().toString() + "\nsetLong value: " + setLong.getText().toString());
                                         Log.v("new object added","Name: " + setName.getText().toString() + "\nLat: " + newLatitude + "\nLong: " + newLongitude + "\nRadius: " + setRadius.getText().toString() + "\nTopic: " + setTopic.getText().toString() + "\nMessage: " + setActivateMessage.getText().toString());
-                                        //get ip
-
                                         //(i) insert into database for future loads
-                                        boolean success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setActivateMessage.getText().toString(), setDeactivateMessage.getText().toString());
+                                        boolean success = false;
+                                        if(localDebugging.isChecked() == true) { //if local debugging enabled, add the current ip
+                                            success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setActivateMessage.getText().toString(), setDeactivateMessage.getText().toString(), getIp());
+                                        } else { // if local debugging disabled, pass null as current ip
+                                            success = myDb.insertData(setName.getText().toString(), newLatitude, newLongitude, Integer.parseInt(setRadius.getText().toString()), setTopic.getText().toString(), setActivateMessage.getText().toString(), setDeactivateMessage.getText().toString(), null);
+                                        }
                                         if (success) {
                                             Log.v("new object added","successfully added to database");
                                         } else {
@@ -269,6 +279,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         removeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String connectParams[] = {"publish", "lol text", "phone/activateLED","0"};
+                publishMQTTmessage(connectParams);
+
                 LayoutInflater removeObjectInflater = getLayoutInflater();
                 View alertDialogconfigureNearFieldLayout = removeObjectInflater.inflate(R.layout.alertdialog_removeobject, null);
                 AlertDialog.Builder removeObjectBuilder = new AlertDialog.Builder(MapsActivity.this);
@@ -290,6 +303,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 removeObjectAlert.show();
             }
         });
+    }
+
+    public String getIp() {
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+
+        // Convert little-endian to big-endianif needed
+        if (ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN)) {
+            ipAddress = Integer.reverseBytes(ipAddress);
+        }
+
+        byte[] ipByteArray = BigInteger.valueOf(ipAddress).toByteArray();
+
+        String ipAddressString;
+        try {
+            ipAddressString = InetAddress.getByAddress(ipByteArray).getHostAddress();
+        } catch (UnknownHostException ex) {
+            Log.e("WIFIIP", "Unable to get host address.");
+            ipAddressString = null;
+        }
+        return ipAddressString;
     }
 
     @Override
@@ -356,12 +390,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // Interface to call the construction of MQTT client from fragments.
+    public void createMQTTClient(String connectParams[]) {
+
+        // This method is called from  MQTTConnectFragment and it passes an array of
+        // strings with the information gathered from the GUI to create an MQQT client
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(connectParams);
+    }
+
     public void publishMQTTmessage(String publishParams[]) {
 
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
         // This method is called from  MQTTPublishFragment and it passes an array of
         // strings with the information gathered from the GUI to create an MQQT message
-        MQTTClientHelper mqttClient = new MQTTClientHelper();
+
+        createMQTTClient();
+
         mqttClient.execute(publishParams);
+    }
+
+    public void createMQTTClient() {
+
+        //TODO: get shared prefs
+
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+
+        URIbroker = "tcp://" + brokerString + ":" + portString;
+        protocol = "tcp";
+
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", brokerString, portString,
+                URIbroker, clientString, protocol, filePath};
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(connectParams);
     }
 
     @Override
