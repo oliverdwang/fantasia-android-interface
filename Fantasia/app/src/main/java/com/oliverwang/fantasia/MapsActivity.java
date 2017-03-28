@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -42,6 +43,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteOrder;
 import java.util.List;
+
+import static com.oliverwang.fantasia.MainActivity.CLIENT_SETTINGS;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_BROKER;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_CLIENTID;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_PORT;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener {
 
@@ -391,25 +397,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // Interface to call the construction of MQTT client from fragments.
-    public void createMQTTClient(String connectParams[]) {
+    public void createMQTTClient() {
 
-        // This method is called from  MQTTConnectFragment and it passes an array of
-        // strings with the information gathered from the GUI to create an MQQT client
+        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+
+        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
+        String protocol = "tcp";
+
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
+                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
     }
 
     public void publishMQTTmessage(String publishParams[]) {
 
-        MQTTClientHelper mqttClient = new MQTTClientHelper();
-        // This method is called from  MQTTPublishFragment and it passes an array of
-        // strings with the information gathered from the GUI to create an MQQT message
+        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
 
-        createMQTTClient();
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+
+        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
+        String protocol = "tcp";
+
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
+                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(connectParams);
 
         mqttClient.execute(publishParams);
     }
 
+    /*
     public void createMQTTClient() {
 
         //TODO: get shared prefs
@@ -426,7 +452,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
-    }
+    }*/
 
     @Override
     public void onProviderDisabled(String provider) { //called if no GPS

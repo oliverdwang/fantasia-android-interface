@@ -50,11 +50,9 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
-    public String brokerString;
-    public String portString;
-    public String clientString;
-    public String protocol;
-    public String filePath;
+    //public String brokerString;
+    //public String portString;
+    //public String clientString;
 
     private Button configureBroker;
     private Button runBroker;
@@ -62,22 +60,16 @@ public class MainActivity extends AppCompatActivity {
     private Button runClient;
     private Button startGeo;
 
-    private static final String CLIENT_SETTINGS = "clientSettings";
-    private static final String SETTINGS_BROKER = "brokerKey";
-    private static final String SETTINGS_PORT = "portKey";
-    private static final String SETTINGS_CLIENTID = "clientIdKey";
+    public static final String CLIENT_SETTINGS = "clientSettings";
+    public static final String SETTINGS_BROKER = "brokerKey";
+    public static final String SETTINGS_PORT = "portKey";
+    public static final String SETTINGS_CLIENTID = "clientIdKey";
 
     //@todo add function to refresh listview on update of log arraylist
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
-        String restoredText = prefs.getString("text", null);
-        brokerString = prefs.getString(SETTINGS_BROKER, "127.0.0.1");
-        portString = prefs.getString(SETTINGS_PORT, "1883");
-        clientString = prefs.getString(SETTINGS_CLIENTID, "phone");
 
         //setup all objects
         configureBroker = (Button) findViewById(R.id.configure_broker);
@@ -148,9 +140,10 @@ public class MainActivity extends AppCompatActivity {
                     final EditText setPort = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_port);
                     final EditText setClientID = (EditText) alertDialogConfigureClientLayout.findViewById(R.id.editText_clientid);
 
-                    setBroker.setText(brokerString);
-                    setPort.setText(portString);
-                    setClientID.setText(clientString);
+                    SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+                    setBroker.setText(prefs.getString(SETTINGS_BROKER, "127.0.0.1"));
+                    setPort.setText(prefs.getString(SETTINGS_PORT, "1883"));
+                    setClientID.setText(prefs.getString(SETTINGS_CLIENTID, "phone"));
 
                     Button helpBroker = (Button) alertDialogConfigureClientLayout.findViewById(R.id.button_helpBroker);
                     helpBroker.setOnClickListener(new View.OnClickListener() {
@@ -179,13 +172,10 @@ public class MainActivity extends AppCompatActivity {
                     configureClientBuilder.setPositiveButton("Save",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
-                                    brokerString = setBroker.getText().toString();
-                                    portString = setPort.getText().toString();
-                                    clientString = setClientID.getText().toString();
                                     SharedPreferences.Editor editor = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE).edit();
-                                    editor.putString(SETTINGS_BROKER, brokerString);
-                                    editor.putString(SETTINGS_PORT, portString);
-                                    editor.putString(SETTINGS_CLIENTID, clientString);
+                                    editor.putString(SETTINGS_BROKER, setBroker.getText().toString());
+                                    editor.putString(SETTINGS_PORT, setPort.getText().toString());
+                                    editor.putString(SETTINGS_CLIENTID, setClientID.getText().toString());
                                     editor.commit();
                                 }
                             });
@@ -208,19 +198,26 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.button_startGeo:
                     startActivity(new Intent(MainActivity.this, MapsActivity.class));
                     break;
-
-                case R.id.button_testPub:
-                    String testConnectParams[] = {"publish", "1", "phone/led"};
-                    publishMQTTmessage(testConnectParams);
             }
         }
     };
 
     public void publishMQTTmessage(String publishParams[]) {
 
-        // This method is called from  MQTTPublishFragment and it passes an array of
-        // strings with the information gathered from the GUI to create an MQQT message
+        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+
+        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
+        String protocol = "tcp";
+
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
+                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
+        mqttClient.execute(connectParams);
         mqttClient.execute(publishParams);
     }
 
@@ -292,15 +289,18 @@ public class MainActivity extends AppCompatActivity {
 
     public void createMQTTClient() {
 
+        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+        String filePath;
+
         // This String is built depending on the type of connection and data from the UI
         String URIbroker;
 
-        URIbroker = "tcp://" + brokerString + ":" + portString;
-        protocol = "tcp";
+        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
+        String protocol = "tcp";
 
         // Bundle the parameters, and call the parent Activity method to start the connection
-        String connectParams[] = {"connect", brokerString, portString,
-                URIbroker, clientString, protocol, filePath};
+        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
+                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
         // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);

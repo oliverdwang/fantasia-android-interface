@@ -54,7 +54,6 @@ public class MQTTClientHelper extends AsyncTask<String, Void, String[]> {
                     options.setConnectionTimeout(60);
                     options.setKeepAliveInterval(60);
 
-                    // TODO: Rid these debugging prints
                     // Connect to the server
                     System.out.println("Connecting to broker: " + broker);
                     client.connect(options);
@@ -63,7 +62,6 @@ public class MQTTClientHelper extends AsyncTask<String, Void, String[]> {
                     return paramString;
 
                 } catch (MqttException me) {
-                    // TODO: Rid these debugging prints
                     System.out.println("reason " + me.getReasonCode());
                     System.out.println("msg " + me.getMessage());
                     System.out.println("loc " + me.getLocalizedMessage());
@@ -93,7 +91,6 @@ public class MQTTClientHelper extends AsyncTask<String, Void, String[]> {
                     // Publish the msessage
                     client.publish(topicToPublish, message);
                     System.out.println("Message published");
-                    // TODO: Rid these debugging prints
                 } catch (MqttException e) {
                     e.printStackTrace();
                     return null;
