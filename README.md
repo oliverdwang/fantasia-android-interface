@@ -1,5 +1,4 @@
 # fantasia-android-interface
-## Due to increased academic workload, I have temporarily paused working on this project. I plan to resume work as soon as possible.
 ### What is Fantasia?
 Fantasia is an android based home integration and internet of things (IoT) development platform. Fantasia uses MQTT, or MQ telemetry transport, protocol to send and receive messages to MQTT enabled clients. Since MQTT is supported on a variety of programming languages, such as C, java, python, and lua, to name a few, Fantasia is able to communicate to a variety of development boards. Any microprocessor with a supported language and some form of internet connection ultimately is configurble with this app.
 
