@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     //public String portString;
     //public String clientString;
 
+    MQTTClientHelper client;
+
     private Button configureBroker;
     private Button runBroker;
     private Button configureClient;
@@ -70,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        client = new MQTTClientHelper(getApplicationContext());
 
         //setup all objects
         configureBroker = (Button) findViewById(R.id.configure_broker);
@@ -192,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case R.id.run_client:
-                    createMQTTClient();
+                    client.createMQTTClient();
                     break;
 
                 case R.id.button_startGeo:
@@ -202,7 +206,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /*
     public void publishMQTTmessage(String publishParams[]) {
+
 
         SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
 
@@ -218,8 +224,11 @@ public class MainActivity extends AppCompatActivity {
         // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
+
+        MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(publishParams);
     }
+    */
 
     public boolean isPermissionGranted() {
         ArrayList<String> permissions = new ArrayList<>();
@@ -287,6 +296,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
     public void createMQTTClient() {
 
         SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
@@ -305,4 +315,5 @@ public class MainActivity extends AppCompatActivity {
         MQTTClientHelper mqttClient = new MQTTClientHelper();
         mqttClient.execute(connectParams);
     }
+    */
 }

@@ -51,6 +51,8 @@ import static com.oliverwang.fantasia.MainActivity.SETTINGS_PORT;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener {
 
+    MQTTClientHelper client;
+
     private GoogleMap mMap;
 
     private NearFieldDatabaseHelper myDb;
@@ -71,6 +73,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        client = new MQTTClientHelper(getApplicationContext());
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -286,7 +291,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
                 String connectParams[] = {"publish", "lol text", "phone/activateLED","0"};
-                publishMQTTmessage(connectParams);
+                client.publishMQTTmessage(connectParams);
 
                 LayoutInflater removeObjectInflater = getLayoutInflater();
                 View alertDialogconfigureNearFieldLayout = removeObjectInflater.inflate(R.layout.alertdialog_removeobject, null);
@@ -341,6 +346,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             //for new objects
             while (objects.moveToNext()) {
+                Log.v("name",objects.getString(1));
+                Log.v("lat",Double.toString(objects.getDouble(2)));
+                Log.v("long",Double.toString(objects.getDouble(3)));
+                Log.v("rad", Integer.toString(objects.getInt(4)));
+                Log.v("topic", objects.getString(5));
+                Log.v("startMsg", objects.getString(6));
                 Location tempObject = new Location(locationManager.getBestProvider(criteria, false));
                 tempObject.setLatitude(objects.getDouble(2));
                 tempObject.setLongitude(objects.getDouble(3));
@@ -349,21 +360,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if(objects.getInt(8) == 0) { //activate object
                             Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
                             String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
-                            publishMQTTmessage(connectParams);
+                            Log.v("connectParams",connectParams[0] + " " + connectParams[1] + " " + connectParams[2] + " " + connectParams[3]);
+                            client.publishMQTTmessage(connectParams);
                         }
                         myDb.updateState(objects.getInt(0), 1);
-                    } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
+                    } else if(objects.getInt(8) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
                         //keep object activated
                         myDb.updateState(objects.getInt(0), 2);
-                    } else if(objects.getInt(7) == 2) { //if disconnected for 10 sec, keep attached
+                    } else if(objects.getInt(8) == 2) { //if disconnected for 10 sec, keep attached
                         //keep object activated
                         myDb.updateState(objects.getInt(0), 3);
-                    } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
-                        if(objects.getInt(8) == 0) { //deactivate object
+                    } else if(objects.getInt(8) == 3) { //if disconnected for 15 sec, deactivate
+                        /*
+                        if(objects.getInt(8) == 0) { //deactivated object
                             Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
                             String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
-                            publishMQTTmessage(connectParams);
-                        }
+                            mCallback.publishMQTTmessage(connectParams);
+                        }*/
                         myDb.updateState(objects.getInt(0), 0);
                     }
                 } else {
@@ -371,20 +384,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if(objects.getInt(8) == 0) { //activate object
                             Toast.makeText(getApplicationContext(),objects.getString(1) + " activated!",Toast.LENGTH_SHORT).show();
                             String connectParams[] = {"publish", objects.getString(6),objects.getString(5),"0"};
-                            publishMQTTmessage(connectParams);
+                            client.publishMQTTmessage(connectParams);
                         }
                         myDb.updateState(objects.getInt(0), 1);
-                    } else if(objects.getInt(7) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
+                    } else if(objects.getInt(8) == 1) { //if disconnected for 5 sec, keep attached      //ANTITHRASH SERVICE (ATS): 10 second hysteresis
                         //keep object activated
                         myDb.updateState(objects.getInt(0), 2);
-                    } else if(objects.getInt(7) == 2) { //if disconnected for 10 sec, keep attached
+                    } else if(objects.getInt(8) == 2) { //if disconnected for 10 sec, keep attached
                         //keep object activated
                         myDb.updateState(objects.getInt(0), 3);
-                    } else if(objects.getInt(7) == 3) { //if disconnected for 15 sec, deactivate
+                    } else if(objects.getInt(8) == 3) { //if disconnected for 15 sec, deactivate
                         if(objects.getInt(8) == 0) { //deactivate object
                             Toast.makeText(getApplicationContext(),objects.getString(1) + " deactivated!",Toast.LENGTH_SHORT).show();
                             String connectParams[] = {"publish", objects.getString(7),objects.getString(5),"0"};
-                            publishMQTTmessage(connectParams);
+                            client.publishMQTTmessage(connectParams);
                         }
                         myDb.updateState(objects.getInt(0), 0);
                     }
@@ -396,25 +409,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    // Interface to call the construction of MQTT client from fragments.
-    public void createMQTTClient() {
-
-        SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
-
-        // This String is built depending on the type of connection and data from the UI
-        String URIbroker;
-
-        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
-        String protocol = "tcp";
-
-        // Bundle the parameters, and call the parent Activity method to start the connection
-        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
-                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
-        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
-        MQTTClientHelper mqttClient = new MQTTClientHelper();
-        mqttClient.execute(connectParams);
-    }
-
+    /*
     public void publishMQTTmessage(String publishParams[]) {
 
         SharedPreferences prefs = getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
@@ -435,7 +430,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mqttClient.execute(publishParams);
     }
 
-    /*
     public void createMQTTClient() {
 
         //TODO: get shared prefs

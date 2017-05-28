@@ -1,5 +1,7 @@
 package com.oliverwang.fantasia;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
@@ -9,6 +11,12 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
+import static android.content.Context.MODE_PRIVATE;
+import static com.oliverwang.fantasia.MainActivity.CLIENT_SETTINGS;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_BROKER;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_CLIENTID;
+import static com.oliverwang.fantasia.MainActivity.SETTINGS_PORT;
 
 /**
  * Created by 48oli on 3/4/2017.
@@ -25,6 +33,27 @@ public class MQTTClientHelper extends AsyncTask<String, Void, String[]> {
     public MqttClient client;
     public MqttConnectOptions options;
     public int qos = 0;
+
+    Context mContext;
+    public MQTTClientHelper(Context context){
+        this.mContext = context;
+    }
+    public void createMQTTClient(){
+        SharedPreferences prefs = mContext.getSharedPreferences(CLIENT_SETTINGS, MODE_PRIVATE);
+        String filePath;
+        // This String is built depending on the type of connection and data from the UI
+        String URIbroker;
+        URIbroker = "tcp://" + prefs.getString(SETTINGS_BROKER, "127.0.0.1") + ":" + prefs.getString(SETTINGS_PORT, "1883");
+        String protocol = "tcp";
+        // Bundle the parameters, and call the parent Activity method to start the connection
+        String connectParams[] = {"connect", prefs.getString(SETTINGS_BROKER, "127.0.0.1"), prefs.getString(SETTINGS_PORT, "1883"),
+                URIbroker, prefs.getString(SETTINGS_CLIENTID, "127.0.0.1"), protocol, null};
+        // This method passes an array of strings with the information gathered from the GUI to create an MQTT client
+        execute(connectParams);
+    }
+    public void publishMQTTmessage(String publishParams[]) {
+        execute(publishParams);
+    }
 
     @Override
     protected String[] doInBackground(String... paramString) {
